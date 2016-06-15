@@ -1,0 +1,137 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../oc-core-utils/oc-core.html">
+<link rel="import" href="../oc-core-utils/formatter-behaviour.html">
+
+<script>
+  window.OC = window.OC || {};
+  window.OC.Behaviours = window.OC.Behaviours || {};
+  OC.Behaviours.Order = [OC.Behaviours.Formatter, {
+
+    _isPartiallyRejectedOrder: function(order) {
+      return order && order.status.id === 14;
+    },
+
+    _isPartiallyRejectedItem: function(item) {
+      return item.status.id === 9;
+    },
+
+    _getOrderingFromOrganisations: function(order) {
+      if (!order) {
+        return [];
+      }
+
+      var organisations = [];
+      var addedOrganisations = [];
+
+      for (var i in order.items) {
+        if (addedOrganisations.indexOf(order.items[i].detail.organisation.id) > -1) {
+          continue;
+        }
+        addedOrganisations.push(order.items[i].detail.organisation.id);
+        organisations.push(order.items[i].detail.organisation);
+      }
+
+      return organisations;
+    },
+
+    _deliveryAgentFullName: function(deliveryAgent) {
+      if (!deliveryAgent) {
+        return null;
+      }
+
+      return deliveryAgent.user.profile.firstName + ' ' + deliveryAgent.user.profile.surname;
+    },
+
+    _getItemsOfOrganisation: function(order, organisation) {
+      if (!order) {
+        return [];
+      }
+
+      var items = [];
+
+      for (var i in order.items) {
+        if (order.items[i].detail.organisation.id === organisation.id) {
+          items.push(order.items[i]);
+        }
+      }
+
+      return items;
+    },
+
+    _getItemOptions: function(item) {
+      var options = [];
+
+      for (var i in item.options) {
+        options.push(item.options[i].name);
+      }
+
+      return options.join(', ');
+    },
+
+    _getItemExtras: function(item) {
+      var extras = [];
+
+      for (var i in item.extras) {
+        extras.push(item.extras[i].name);
+      }
+
+      return extras.join(', ');
+    },
+
+    _getMerchantTotalLinePrice: function(organisation, order) {
+      return this._getMerchantItems(organisation, order)
+          .reduce(function(total, current) {
+            return total.plus(current.linePrice);
+          }, this.formatNumber(0))
+          .toFixed(2);
+    },
+
+    _getMerchantSubtotalPrice: function(organisation, order) {
+      return this._getSubtotalPrice(this._getMerchantItems(organisation, order));
+    },
+
+    _getMerchantTotalDiscount: function(organisation, order) {
+      return this._getTotalDiscount(this._getMerchantItems(organisation, order));
+    },
+
+    _getMerchantTotalMarkup: function(organisation, order) {
+      return this._getTotalMarkup(this._getMerchantItems(organisation, order));
+    },
+
+    _getSubtotalPrice: function(items) {
+      return (items || [])
+          .reduce(function(total, current) {
+            return total.plus(current.price);
+          }, this.formatNumber(0))
+          .toFixed(2);
+    },
+
+    _getTotalDiscount: function(items) {
+      return (items || [])
+          .reduce(function(total, current) {
+            return total.plus(current.itemDiscount ? current.itemDiscount.discountAmount : 0);
+          }, this.formatNumber(0))
+          .toFixed(2);
+    },
+
+    _getTotalMarkup: function(items) {
+      return (items || [])
+          .reduce(function(previous, current) {
+            return previous.plus(current.markup || 0);
+          }, this.formatNumber(0))
+          .toFixed(2);
+    },
+
+    _getMerchantItems: function(organisation, order) {
+      if (!(organisation && order)) {
+        return [];
+      }
+
+      return order.items
+          .filter(function(item) {
+            return item.detail.organisation.id === organisation.id;
+          });
+    }
+
+  }];
+</script>
